@@ -1,0 +1,537 @@
+%altacv.cls
+
+%%%%%%%%%%%%%%%%%
+% This is altacv.cls (v1.1.5, 1 December 2018) written by
+% LianTze Lim (liantze@gmail.com).
+%
+%% It may be distributed and/or modified under the
+%% conditions of the LaTeX Project Public License, either version 1.3
+%% of this license or (at your option) any later version.
+%% The latest version of this license is in
+%%    http://www.latex-project.org/lppl.txt
+%% and version 1.3 or later is part of all distributions of LaTeX
+%% version 2003/12/01 or later.
+%%
+%%
+% Contributions:
+% - https://github.com/akreuzer Added ragged2e option (5 Nov 2018)
+% - https://github.com/stefanogermano Fixed bad boxes and undefined font shape (July 2018)
+% - https://github.com/foohyfooh Fixed blank spaces in \cvevent and bad link in README.md (June 2018)
+
+%%%%%%%%%%%%%%%%
+\NeedsTeXFormat{LaTeX2e}[1995/12/01]
+%% v1.4: Detect TL2018 to handle accented characters in class information
+\@ifl@t@r\fmtversion{2018/04/01}{\UseRawInputEncoding}{}
+\ProvidesClass{altacv}[2018/12/01 AltaCV v1.1.5, yet another alternative class for a résumé/curriculum vitae.]
+
+%% v1.1: Optionally load academicons
+\newif\if@academicons
+\DeclareOption{academicons}{\@academiconstrue}
+%% v1.1.3: Choice of round/square photo
+\newif\if@normalphoto
+\DeclareOption{normalphoto}{\@normalphototrue}
+\DeclareOption*{\PassOptionsToClass{\CurrentOption}{extarticle}}
+\newif\if@raggedtwoe
+\DeclareOption{ragged2e}{\@raggedtwoetrue}
+\ProcessOptions\relax
+
+\LoadClass{extarticle}
+
+\RequirePackage[margin=2cm]{geometry}
+\RequirePackage{fontawesome}
+\RequirePackage{ifxetex,ifluatex}
+\RequirePackage{scrlfile}
+
+%% v1.1.5: added for convenience
+\newif\ifxetexorluatex
+\ifxetex
+  \xetexorluatextrue
+\else
+  \ifluatex
+    \xetexorluatextrue
+  \else
+    \xetexorluatexfalse
+  \fi
+\fi
+
+%% v1.1: Optionally load academicons
+%% v1.1.5: Handle different versions of academicons
+\if@academicons
+  \ifxetexorluatex
+    \RequirePackage{fontspec}
+    %% academicons in TL2018 doesn't require
+    %% Academicons to be installed in OS fonts
+    %% so can be loaded directly
+    \@ifl@t@r\fmtversion{2018/04/01}{%
+      \RequirePackage{academicons}
+    }{%
+      % TL2017
+      \@ifl@t@r\fmtversion{2017/04/01}{%
+        \@ifpackagelater{academicons}{2018/03/01}{%
+          \RequirePackage{academicons}
+        }{%
+          \let\ori@newfontfamily\newfontfamily%
+          \renewcommand{\newfontfamily}[2]{}
+          \RequirePackage{academicons}
+          \let\newfontfamily\ori@newfontfamily
+          \newfontfamily{\AI}{academicons.ttf}
+        }
+      }{% TL2016 requires the package to be loaded before
+        % the version can be checked. Only added because
+        % Overleaf v1 still runs TL2016; will be removed
+        % when v1 is completely retired.
+          \let\ori@newfontfamily\newfontfamily%
+          \renewcommand{\newfontfamily}[2]{}
+          \RequirePackage{academicons}
+          \let\newfontfamily\ori@newfontfamily
+          \newfontfamily{\AI}{academicons.ttf}
+      }
+    }
+  \else
+    \ClassError{AltaCV}{academicons unsupported by latex or pdflatex. Please compile with xelatex or lualatex}{Please compile with xelatex or lualatex to use the academicons option}
+  \fi
+\fi
+
+\if@raggedtwoe
+  \RequirePackage[newcommands]{ragged2e}
+\fi
+
+\RequirePackage{xcolor}
+
+\colorlet{accent}{blue!70!black}
+\colorlet{heading}{black}
+\colorlet{emphasis}{black}
+\colorlet{body}{black!80!white}
+\newcommand{\itemmarker}{{\small\textbullet}}
+\newcommand{\ratingmarker}{\faCircle}
+
+\RequirePackage{tikz}
+\usetikzlibrary{arrows}
+\RequirePackage[skins]{tcolorbox}
+\RequirePackage{enumitem}
+\setlist{leftmargin=*,labelsep=0.5em,nosep,itemsep=0.25\baselineskip,after=\vskip0.25\baselineskip}
+\setlist[itemize]{label=\itemmarker}
+\RequirePackage{graphicx}
+\RequirePackage{etoolbox}
+\RequirePackage{dashrule}
+\RequirePackage{multirow,tabularx}
+\RequirePackage{changepage}
+% \RequirePackage{marginfix}
+
+\setlength{\parindent}{0pt}
+\newcommand{\divider}{\textcolor{body!30}{\hdashrule{\linewidth}{0.6pt}{0.5ex}}\medskip}
+
+\newenvironment{fullwidth}{%
+  \begin{adjustwidth}{}{\dimexpr-\marginparwidth-\marginparsep\relax}}
+  {\end{adjustwidth}}
+
+\newcommand{\emailsymbol}{\faAt}
+\newcommand{\phonesymbol}{\faPhone}
+\newcommand{\homepagesymbol}{\faChain}
+\newcommand{\locationsymbol}{\faMapMarker}
+\newcommand{\linkedinsymbol}{\faLinkedin}
+\newcommand{\twittersymbol}{\faTwitter}
+\newcommand{\githubsymbol}{\faGithub}
+\newcommand{\orcidsymbol}{\aiOrcid}
+\newcommand{\mailsymbol}{\faEnvelope}
+
+\newcommand{\printinfo}[2]{\mbox{\textcolor{accent}{\normalfont #1}\hspace{0.5em}#2\hspace{2em}}}
+
+\newcommand{\name}[1]{\def\@name{#1}}
+\newcommand{\tagline}[1]{\def\@tagline{#1}}
+\newcommand{\photo}[2]{\def\@photo{#2}\def\@photodiameter{#1}}
+\newcommand{\email}[1]{\printinfo{\emailsymbol}{#1}}
+\newcommand{\mailaddress}[1]{\printinfo{\mailsymbol}{#1}}
+\newcommand{\phone}[1]{\printinfo{\phonesymbol}{#1}}
+\newcommand{\homepage}[1]{\printinfo{\homepagesymbol}{#1}}
+\newcommand{\twitter}[1]{\printinfo{\twittersymbol}{#1}}
+\newcommand{\linkedin}[1]{\printinfo{\linkedinsymbol}{#1}}
+\newcommand{\github}[1]{\printinfo{\githubsymbol}{#1}}
+\newcommand{\orcid}[1]{\printinfo{\orcidsymbol}{#1}}
+\newcommand{\location}[1]{\printinfo{\locationsymbol}{#1}}
+
+\newcommand{\personalinfo}[1]{\def\@personalinfo{#1}}
+
+\newcommand{\makecvheader}{%
+  \begingroup
+    \ifdef{\@photodiameter}{\begin{minipage}{\dimexpr\linewidth-\@photodiameter-2em}}{}%
+    \raggedright\color{emphasis}%
+    {\Huge\bfseries\MakeUppercase{\@name}\par}
+    \medskip
+    {\large\bfseries\color{accent}\@tagline\par}
+    \medskip
+    {\footnotesize\bfseries\@personalinfo\par}
+    \ifdef{\@photodiameter}{%
+    \end{minipage}\hfill%
+    \begin{minipage}{\@photodiameter}
+    \if@normalphoto
+      \includegraphics[width=\linewidth]{\@photo}
+    \else
+      \tikz\path[fill overzoom image={\@photo}]circle[radius=0.5\linewidth];
+    \fi%
+    \end{minipage}\par}{}%
+  \endgroup\medskip
+}
+
+\renewenvironment{quote}{\color{accent}\itshape\large}{\par}
+
+\newcommand{\cvsection}[2][]{%
+  \bigskip%
+  \ifstrequal{#1}{}{}{\marginpar{\vspace*{\dimexpr1pt-\baselineskip}\raggedright\input{#1}}}%
+  {\color{heading}\LARGE\bfseries\MakeUppercase{#2}}\\[-1ex]%
+  {\color{heading}\rule{\linewidth}{2pt}\par}\medskip
+}
+
+\newcommand{\cvsubsection}[1]{%
+  \smallskip%
+  {\color{emphasis}\large\bfseries{#1}\par}\medskip
+}
+
+% v1.1.4: fixes inconsistent font size
+\newcommand{\cvevent}[4]{%
+  {\large\color{emphasis}#1\par}
+  \smallskip\normalsize
+  \ifstrequal{#2}{}{}{
+  \textbf{\color{accent}#2}\par
+  \smallskip}
+  \ifstrequal{#3}{}{}{{\small\makebox[0.5\linewidth][l]{\faCalendar\hspace{0.5em}#3}}}%
+  \ifstrequal{#4}{}{}{{\small\makebox[0.5\linewidth][l]{\faMapMarker\hspace{0.5em}#4}}}\par
+  \medskip\normalsize
+}
+
+\newcommand{\cvachievement}[3]{%
+  \begin{tabularx}{\linewidth}{@{}p{2em} @{\hspace{1ex}} >{\raggedright\arraybackslash}X@{}}
+  \multirow{4}{*}{\Large\color{accent}#1} & \bfseries\textcolor{emphasis}{#2}\\
+  & #3
+  \end{tabularx}%
+  %\smallskip
+}
+
+\newcommand{\cvproject}[1]{%
+  {\textbf{\color{accent}#1}\par}
+  \smallskip\normalsize
+}
+
+\newcommand{\cvtag}[1]{%
+  \tikz[baseline]\node[anchor=base,draw=body!30,rounded corners,inner xsep=1ex,inner ysep =0.75ex,text height=1.5ex,text depth=.25ex]{#1};
+}
+
+\newcommand{\cvskill}[2]{%
+\textcolor{emphasis}{\textbf{#1}}\hfill
+\foreach \x in {1,...,5}{%
+  \space{\ifnumgreater{\x}{#2}{\color{body!30}}{\color{accent}}\ratingmarker}}\par%
+}
+
+% Adapted from @Jake's answer at http://tex.stackexchange.com/a/82729/226
+\newcommand{\wheelchart}[4][0]{%
+    \begingroup\centering
+    \def\innerradius{#3}%
+    \def\outerradius{#2}%
+    % Calculate total
+    \pgfmathsetmacro{\totalnum}{0}%
+    \foreach \value/\colour/\name in {#4} {%
+        \pgfmathparse{\value+\totalnum}%
+        \global\let\totalnum=\pgfmathresult%
+    }%
+    \begin{tikzpicture}
+
+      % Calculate the thickness and the middle line of the wheel
+      \pgfmathsetmacro{\wheelwidth}{\outerradius-\innerradius}
+      \pgfmathsetmacro{\midradius}{(\outerradius+\innerradius)/2}
+      \pgfmathsetmacro{\totalrot}{-90 + #1}
+
+      % Rotate so we start from the top
+      \begin{scope}[rotate=\totalrot]
+
+      % Loop through each value set. \cumnum keeps track of where we are in the wheel
+      \pgfmathsetmacro{\cumnum}{0}
+      \foreach \value/\width/\colour/\name in {#4} {
+            \pgfmathsetmacro{\newcumnum}{\cumnum + \value/\totalnum*360}
+
+            % Calculate the percent value
+            \pgfmathsetmacro{\percentage}{\value/\totalnum*100}
+            % Calculate the mid angle of the colour segments to place the labels
+            \pgfmathsetmacro{\midangle}{-(\cumnum+\newcumnum)/2}
+
+            % This is necessary for the labels to align nicely
+            \pgfmathparse{
+               (-\midangle>180?"west":"east")
+            } \edef\textanchor{\pgfmathresult}
+            \pgfmathparse{
+               (-\midangle>180?"flush left":"flush right")
+            } \edef\textalign{\pgfmathresult}
+            \pgfmathsetmacro\labelshiftdir{1-2*(-\midangle<180)}
+
+            % Draw the color segments. Somehow, the \midrow units got lost, so we add 'pt' at the end. Not nice...
+            \filldraw[draw=white,fill=\colour] (-\cumnum:\outerradius) arc (-\cumnum:-(\newcumnum):\outerradius) --
+            (-\newcumnum:\innerradius) arc (-\newcumnum:-(\cumnum):\innerradius) -- cycle;
+
+            % Draw the data labels
+            \draw  [*-,thin,emphasis] node [append after command={(\midangle:\midradius pt) -- (\midangle:\outerradius + 1ex) -- (\tikzlastnode)}] at (\midangle:\outerradius + 1ex) [xshift=\labelshiftdir*0.5cm,inner sep=1ex, outer sep=0pt, text width=\width,anchor=\textanchor,align=\textalign,font=\small,text=body]{\name};
+            % Set the old cumulated angle to the new value
+            \global\let\cumnum=\newcumnum
+        }
+      \end{scope}
+%      \draw[gray] (0,0) circle (\outerradius) circle (\innerradius);
+    \end{tikzpicture}\par
+    \endgroup
+}
+
+\newcommand{\cvref}[3]{%
+  \smallskip
+  \textcolor{emphasis}{\textbf{#1}}\par
+  \begin{description}[font=\color{accent},style=multiline,leftmargin=1.35em]
+  \item[\normalfont\emailsymbol] #2
+  \item[\small\normalfont\mailsymbol] #3
+  \end{description}
+%   \medskip
+}
+
+\newenvironment{cvcolumn}[1]{\begin{minipage}[t]{#1}\raggedright}{\end{minipage}}
+
+\RequirePackage[backend=biber,style=authoryear,sorting=ydnt]{biblatex}
+%% For removing numbering entirely when using a numeric style
+% \setlength{\bibhang}{1em}
+% \DeclareFieldFormat{labelnumberwidth}{\makebox[\bibhang][l]{\itemmarker}}
+% \setlength{\biblabelsep}{0pt}
+\defbibheading{pubtype}{\cvsubsection{#1}}
+\renewcommand{\bibsetup}{\vspace*{-\baselineskip}}
+\AtEveryBibitem{\makebox[\bibhang][l]{\itemmarker}}
+\setlength{\bibitemsep}{0.25\baselineskip}
+
+% v1.1.2: make it easier to add a sidebar aligned with top of next page
+\RequirePackage{afterpage}
+\newcommand{\addsidebar}[2][]{\marginpar{%
+  \ifstrequal{#1}{}{}{\vspace*{#1}}%
+  \input{#2}}%
+}
+\newcommand{\addnextpagesidebar}[2][]{\afterpage{\addsidebar[#1]{#2}}}
+
+\AtBeginDocument{%
+  \pagestyle{empty}
+  \color{body}
+  \raggedright
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%mmayer.tex
+
+\documentclass[10pt,a4paper,ragged2e]{altacv}
+% page layout 
+\geometry{left=2cm,right=10cm,marginparwidth=6.8cm,marginparsep=1.2cm,top=1.25cm,bottom=1.25cm}
+
+% font
+\ifxetexorluatex
+  % If using xelatex or lualatex:
+  \setmainfont{Carlito}
+\else
+  % If using pdflatex:
+  \usepackage[utf8]{inputenc}
+  \usepackage[T1]{fontenc}
+  \usepackage[default]{lato}
+\fi
+
+% colours 
+\definecolor{VividPurple}{HTML}{000000}
+\definecolor{SlateGrey}{HTML}{2E2E2E}
+\definecolor{LightGrey}{HTML}{2E2E2E}
+\colorlet{heading}{VividPurple}
+\colorlet{accent}{VividPurple}
+\colorlet{emphasis}{SlateGrey}
+\colorlet{body}{LightGrey}
+
+% bullets and rating marker
+\renewcommand{\itemmarker}{{\small\textbullet}}
+\renewcommand{\ratingmarker}{\faCircle}
+
+%% sample.bib contains your publications
+\addbibresource{sample.bib}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+\name{Dr. Anthony T. O'Brien}
+\tagline{Data scientist and Quantitative Methods}
+%\photo{3.3cm}{profile.jpg}
+\personalinfo{
+  % \printinfo{symbol}{detail}
+  \email{aobrienv@gmail.com}
+  \location{Boston, USA}
+  \phone{617-953-0382}
+  \newline
+  \homepage{researchgate.net/profile/Anthony\_Obrien7}
+  \linkedin{linkedin.com/in/aobmd/}
+   \github{github.com/atobrien}
+}
+
+%% Make the header extend all the way to the right, if you want.
+\begin{fullwidth}
+\makecvheader
+\end{fullwidth}
+
+%% smaller fonts of itemize environments 
+\AtBeginEnvironment{itemize}{\small}
+
+%% 
+\cvsection[page1sidebar]{Experience}
+
+\cvevent{Data scientist practicum}{Harvard-MIT Health Sciences and Technology}{Sept 2018 -- Present}{Boston, USA}
+\begin{itemize}
+\item Development of first order Monte-Carlo Markov Model to optimize life expectancy and cost-effectiveness of highly invasive care in the intensive care unit.
+\smallskip
+\item  Used cubic splines, cumulative density curves and Monte-Carlo simulations to validate a 2\% physiological difference in oxygen saturation in the critically ill  and  substantiate standard treatment methods in the intensive care unit.
+\end{itemize}
+
+\divider
+
+\cvevent{Quantitative methods researcher}{University of Santiago de Compostela}{Nov 2017 -- May 2018}{Galicia, Spain}
+\begin{itemize}
+\item Found a 68\% discriminatory response profile in chronic pain patients to novel diagnostic procedure using inverse variance weighting, effect size standardization and Monte-Carlo meta-regression. The procedure will be used to reduce chronic pain development and opioid addiction. 
+\end{itemize}
+
+\divider
+
+\cvevent{Post-doctoral research fellow}{Spaulding Rehabilitation Hospital}{May 2015 -- July 2017}{Boston, USA}
+\begin{itemize}
+\item Performed time-series analysis of at home non-invasive brain augmentation device to stimulate recovery in coma patients. Demonstrated favorable effect of 0.47 after 4 weeks with 22\% of individuals showing new signs of consciousness. 
+\smallskip
+\item  Quantified expected movement recovery of 31-46\% in stroke patients receiving non-invasive brain augmentation techniques combined with robotics and/or physical therapy.
+\end{itemize}
+
+\divider
+
+\cvevent{Methods research consultant promoted from research assistant}{Fundación Santa Fe de Bogotá}{Nov 2013 -- June 2015}{Bogotá, Col}
+\begin{itemize}
+\item Modeled relationship between severe dengue hemorrhaging and NSAID overuse in first response clinics, which led to development of regionally implemented strategies to reduce fatal bleeding from excessive NSAID use. 
+\end{itemize}
+
+\cvsection{Education}
+\cvevent{Masters in Quantitative Methods}{Harvard T.H. Chan School of Public Health}{ July 2018 -- May 2019}{}
+\divider
+
+\cvevent{Medical Doctorate}{Universidad de los Andes}{ June 2007 -- December 2014}{}
+
+
+% \divider
+%\cvskill{German}{3}
+
+
+% \divider
+
+% \cvevent{Product Engineer}{Google}{23 June 1999 -- 2001}{Palo Alto, CA}
+
+% \begin{itemize}
+% \item Joined the company as employe \#20 and female employee \#1
+% \item Developed targeted advertisement in order to use user's search queries and show them related ads
+% \end{itemize}
+
+%\cvsection{A Day of My Life}
+
+% Adapted from @Jake's answer from http://tex.stackexchange.com/a/82729/226
+% \wheelchart{outer radius}{inner radius}{
+% comma-separated list of value/text width/color/detail}
+% Some ad-hoc tweaking to adjust the labels so that they don't overlap
+% \wheelchart{1.5cm}{0.5cm}{%
+%   10/10em/accent!30/Sleeping \& dreaming about work,
+%   25/9em/accent!60/Public resolving issues with Yahoo!\ investors,
+%   5/13em/accent!10/\footnotesize\\[1ex]New York \& San Francisco Ballet Jawbone board member,
+%   20/15em/accent!40/Spending time with family,
+%   5/8em/accent!20/\footnotesize Business development for Yahoo!\ after the Verizon acquisition,
+%   30/9em/accent/Showing Yahoo!\ employees that their work has meaning,
+%   5/8em/accent!20/Baking cupcakes
+% }
+
+\clearpage
+
+% \cvsection[page2sidebar]{Publications}
+
+\nocite{*}
+
+% \printbibliography[heading=pubtype,title={\printinfo{\faBook}{Books}},type=book]
+
+% \divider
+
+% \printbibliography[heading=pubtype,title={\printinfo{\faFileTextO}{Journal Articles}}, type=article]
+
+% \divider
+
+% \printbibliography[heading=pubtype,title={\printinfo{\faGroup}{Conference Proceedings}},type=inproceedings]
+
+% %% If the NEXT page doesn't start with a \cvsection but you'd
+% %% still like to add a sidebar, then use this command on THIS
+% %% page to add it. The optional argument lets you pull up the
+% %% sidebar a bit so that it looks aligned with the top of the
+% %% main column.
+% % \addnextpagesidebar[-1ex]{page3sidebar}
+
+
+\end{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%page1sidebar.tex
+
+
+\cvsection{Tools}
+
+\cvtag{R}
+\cvtag{SQL}
+\cvtag{Python}
+\cvtag{TensorFlow-Keras}
+\cvtag{Google Cloud}
+\cvtag{Google Big query}
+\cvtag{Hadoop/MapReduce}
+\cvtag{H2O}
+\cvtag{Unix}
+\cvtag{Git Version Control}
+\cvtag{Tableau}
+\cvtag{\LaTeX}
+
+\cvsection{Hard Skills}
+\cvtag{Causal Inference (g-Methods \& Conditional Models)}
+\cvtag{Propensity Score Analysis}
+\cvtag{Time Series Analysis}
+\cvtag{Supervised/Unsupervised Learning}
+\cvtag{Cross-validation and Gradient Descent}
+\cvtag{Markov Cohort Models}
+\cvtag{First Order Monte-Carlo Simulations}
+\cvtag{Probabilistic Sensitivity Analysis}
+\cvtag{Cost-effectiveness \& Utility Analysis}
+\cvtag{Data Visualization}
+\cvtag{Parallel computing}
+\cvtag{Inferential \& Descriptive Statistics}
+\cvtag{Grant \& Publication Writing}
+
+\cvsection{Honors \& Awards}
+\begin{itemize}
+\cvachievement{\faDollar}{}{Harvard Chan Central Grant Award (March 2018)}
+%\divider
+\cvachievement{\faGraduationCap}{}{The Harvard Open-Access Publishing Equity Award (HOPE) (May 2017)}
+% %\divider
+\cvachievement{\faInstitution}{}{ Harvard Research Scholar Award \neline(Oct 2014)}
+%\divider
+\end{itemize}
+
+
+%    \item{Harvard Chan Central Grant Award}\newline{March 2018}.
+%    \item The Harvard Open-Access Publishing Equity Award (HOPE)\newline {May 2017}.
+%    \item Harvard Research Scholar Award \newline{Oct 2014}
+
+
+\cvsection{Select Publications}
+
+\begin{itemize}
+\item O'Brien, A.T. et al. 2019. Impact of Therapeutic Interventions on Pain Intensity and Endogenous Pain Modulation in Knee Osteoarthritis. Pain Medicine. [Epub ahead of print] 
+\item O’Brien, A.T. et al. 2019. Validation of oxygen hemoglobin dissociation curve in the critically ill. Work submitted for consideration.
+\smallskip
+\item O’Brien, A.T. et al., 2018. Non-invasive brain stimulation for motor improvement after stroke. European Journal of Neurology, 25(8), pp.1017–1026.
+\smallskip
+%\item O’Brien, A.T. et al., 2018. Defective Endogenous %Pain Modulation in Fibromyalgia. Journal of Pain, %19(8), pp.819–836.
+\smallskip
+\item Martens G, Lejeune N, O’Brien, A.T. et al, 2018. Randomized controlled trial of home-based 4-week tDCS in chronic minimally conscious state. Brain Stimulation. 11(5):982-990
+\end{itemize}
+
+\smallskip
